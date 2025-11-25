@@ -1,0 +1,4 @@
+Comando para hacer correr el backend
+node server.js
+
+contraseña admin123

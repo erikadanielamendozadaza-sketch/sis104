@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProLimp - Inventario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body style="background-color: #f8f9fa;">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+        <div class="container">
+            <a class="navbar-brand" href="dashboard.html"><i class="fas fa-home"></i> ProLimp</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link active" href="inventario.html"><i class="fas fa-box"></i> Inventario</a>
+                <a class="nav-link" href="ventas.html"><i class="fas fa-shopping-cart"></i> Ventas</a>
+                <a class="nav-link" href="clientes.html"><i class="fas fa-users"></i> Clientes</a>
+                <a class="nav-link" href="reportes.html"><i class="fas fa-chart-bar"></i> Reportes</a>
+                <a class="nav-link" href="usuarios.html"><i class="fas fa-user-cog"></i> Usuarios</a>
+                <a class="nav-link" href="index.html"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1 class="text-center mb-4"><i class="fas fa-box"></i> Inventario de Productos</h1>
+        
+        <!-- Formulario para agregar producto -->
+        <div class="card shadow p-4 mb-4">
+            <h5><i class="fas fa-plus"></i> Agregar Nuevo Producto</h5>
+            <form id="formAgregarProducto">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label>Nombre</label>
+                        <input type="text" class="form-control" id="nombreProd" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Descripción</label>
+                        <input type="text" class="form-control" id="descProd">
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <label>Precio</label>
+                        <input type="number" class="form-control" id="precioProd" step="0.01" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label>Stock Actual</label>
+                        <input type="number" class="form-control" id="stockProd" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label>Stock Mínimo</label>
+                        <input type="number" class="form-control" id="minProd" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label>Unidad de Medida</label>
+                        <select class="form-control" id="unidadProd" required>
+                            <option value="">Seleccionar</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3"><i class="fas fa-save"></i> Agregar Producto</button>
+            </form>
+        </div>
+
+        <!-- Tabla de productos -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover shadow" id="tablaProductos">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Precio</th>
+                        <th>Stock Actual</th>
+                        <th>Stock Mínimo</th>
+                        <th>Unidad</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal para editar producto -->
+    <div class="modal fade" id="modalEditar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editId">
+                    <div class="mb-3">
+                        <label>Nombre</label>
+                        <input type="text" class="form-control" id="editNombre">
+                    </div>
+                    <div class="mb-3">
+                        <label>Descripción</label>
+                        <input type="text" class="form-control" id="editDesc">
+                    </div>
+                    <div class="mb-3">
+                        <label>Precio</label>
+                        <input type="number" class="form-control" id="editPrecio" step="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label>Stock Actual</label>
+                        <input type="number" class="form-control" id="editStock">
+                    </div>
+                    <div class="mb-3">
+                        <label>Stock Mínimo</label>
+                        <input type="number" class="form-control" id="editMin">
+                    </div>
+                    <div class="mb-3">
+                        <label>Unidad de Medida</label>
+                        <select class="form-control" id="editUnidad">
+                            <option value="">Seleccionar</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEdicion()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let unidades = [];
+        let productos = [];
+
+        async function cargarUnidades() {
+            try {
+                const response = await fetch('http://localhost:3000/unidades_medida');
+                unidades = await response.json();
+                // Llenar selects
+                const selectAgregar = document.getElementById('unidadProd');
+                const selectEditar = document.getElementById('editUnidad');
+                selectAgregar.innerHTML = '<option value="">Seleccionar</option>';
+                selectEditar.innerHTML = '<option value="">Seleccionar</option>';
+                unidades.forEach(u => {
+                    selectAgregar.innerHTML += `<option value="${u.id}">${u.nombre}</option>`;
+                    selectEditar.innerHTML += `<option value="${u.id}">${u.nombre}</option>`;
+                });
+            } catch (error) {
+                console.error('Error cargando unidades:', error);
+            }
+        }
+
+        async function cargarProductos() {
+            try {
+                const response = await fetch('http://localhost:3000/productos');
+                productos = await response.json();
+                const tbody = document.querySelector('#tablaProductos tbody');
+                tbody.innerHTML = '';
+                productos.forEach(p => {
+                    const unidad = unidades.find(u => u.id == p.id_unidad);
+                    const estado = p.stock_actual < p.stock_minimo ? '<span class="badge bg-danger">Bajo</span>' : '<span class="badge bg-success">OK</span>';
+                    const row = `<tr>
+                        <td>${p.id}</td>
+                        <td>${p.nombre}</td>
+                        <td>${p.descripcion || ''}</td>
+                        <td>$${p.precio}</td>
+                        <td>${p.stock_actual}</td>
+                        <td>${p.stock_minimo}</td>
+                        <td>${unidad ? unidad.nombre : ''}</td>
+                        <td>${estado}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editarProducto(${p.id})"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="borrarProducto(${p.id})"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            } catch (error) {
+                console.error('Error cargando productos:', error);
+            }
+        }
+
+        // Agregar producto
+        document.getElementById('formAgregarProducto').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('nombreProd').value;
+            const descripcion = document.getElementById('descProd').value;
+            const precio = parseFloat(document.getElementById('precioProd').value);
+            const stock_actual = parseInt(document.getElementById('stockProd').value);
+            const stock_minimo = parseInt(document.getElementById('minProd').value);
+            const id_unidad = parseInt(document.getElementById('unidadProd').value);
+
+            try {
+                const response = await fetch('http://localhost:3000/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, descripcion, precio, stock_actual, stock_minimo, id_unidad })
+                });
+                if (response.ok) {
+                    alert('Producto agregado!');
+                    document.getElementById('formAgregarProducto').reset();
+                    cargarProductos();
+                } else {
+                    alert('Error agregando producto');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        // Editar producto
+        function editarProducto(id) {
+            const producto = productos.find(p => p.id == id);
+            if (producto) {
+                document.getElementById('editId').value = producto.id;
+                document.getElementById('editNombre').value = producto.nombre;
+                document.getElementById('editDesc').value = producto.descripcion || '';
+                document.getElementById('editPrecio').value = producto.precio;
+                document.getElementById('editStock').value = producto.stock_actual;
+                document.getElementById('editMin').value = producto.stock_minimo;
+                document.getElementById('editUnidad').value = producto.id_unidad || '';
+                new bootstrap.Modal(document.getElementById('modalEditar')).show();
+            }
+        }
+
+        async function guardarEdicion() {
+            const id = document.getElementById('editId').value;
+            const nombre = document.getElementById('editNombre').value;
+            const descripcion = document.getElementById('editDesc').value;
+            const precio = parseFloat(document.getElementById('editPrecio').value);
+            const stock_actual = parseInt(document.getElementById('editStock').value);
+            const stock_minimo = parseInt(document.getElementById('editMin').value);
+            const id_unidad = parseInt(document.getElementById('editUnidad').value);
+
+            try {
+                const response = await fetch(`http://localhost:3000/productos/${id}/editar`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, descripcion, precio, stock_actual, stock_minimo, id_unidad })
+                });
+                if (response.ok) {
+                    alert('Producto actualizado!');
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide();
+                    cargarProductos();
+                }
+            } catch (error) {
+                                console.error('Error:', error);
+            }
+        }
+
+        // Borrar producto
+        async function borrarProducto(id) {
+            if (confirm('¿Estás seguro de eliminar este producto?')) {
+                try {
+                    const response = await fetch(`http://localhost:3000/productos/${id}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        alert('Producto eliminado!');
+                        cargarProductos();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+
+        // Cargar todo al iniciar
+        async function inicializar() {
+            await cargarUnidades();
+            await cargarProductos();
+        }
+        
+        inicializar();
+    </script>
+</body>
+</html>
+    
